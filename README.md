@@ -53,6 +53,18 @@ This script simulates the entire UCP lifecycle (Discovery → Identity Linking �
 uv run python test_api.py
 ```
 
+## 🐳 Docker Support
+
+If you prefer to run the project in a container:
+
+```bash
+# Build the image
+docker build -t ucp-merchant .
+
+# Run the container
+docker run -p 8000:8000 ucp-merchant
+```
+
 ## 🔒 Security Model
 
 All protected endpoints (`/checkout` and `/orders`) require a valid **Bearer Token** obtained through the Identity Linking handshake.
