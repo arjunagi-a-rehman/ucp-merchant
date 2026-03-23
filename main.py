@@ -1,7 +1,33 @@
 from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
 from routes import profile, checkout, order, identity
 
 app = FastAPI(title="UCP Merchant Sample API")
+
+@app.get("/", response_class=HTMLResponse)
+def read_root():
+    return """
+    <html>
+        <head>
+            <title>UCP Merchant Sample API</title>
+            <style>
+                body { font-family: sans-serif; text-align: center; padding-top: 50px; background: #fdfdfd; }
+                .card { border: 1px solid #ddd; border-radius: 8px; padding: 20px; display: inline-block; background: #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+                a { color: #007bff; text-decoration: none; font-weight: bold; }
+            </style>
+        </head>
+        <body>
+            <div class="card">
+                <h1>Welcome to UCP Merchant Sample!</h1>
+                <p>To explore the Universal Commerce Protocol API endpoints:</p>
+                <p>👉 <a href="/docs">Go to Swagger UI (/docs)</a></p>
+                <p>👉 <a href="/redoc">Go to Redoc UI (/redoc)</a></p>
+                <hr/>
+                <p>Discovery Endpoint: <a href="/.well-known/ucp">/.well-known/ucp</a></p>
+            </div>
+        </body>
+    </html>
+    """
 
 app.include_router(profile.router)
 app.include_router(checkout.router)
