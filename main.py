@@ -2,7 +2,37 @@ from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from routes import profile, checkout, order, identity
 
-app = FastAPI(title="UCP Merchant Sample API")
+description = """
+### Universal Commerce Protocol (UCP) Sample Merchant API
+
+This reference implementation demonstrates a UCP-compliant API for enabling **Agentic Commerce**. 
+AI agents (like Gemini, Alexa, or Siri) can use these endpoints to perform secure, transaction-based actions on behalf of users.
+
+**Key Capabilities:**
+*   🚀 **Checkout**: Stateful transaction flow for AI agents.
+*   📦 **Orders**: Standardized order status and tracking.
+*   🔐 **Identity**: OAuth 2.0 based identity linking for agent authorization.
+
+[Learn more about UCP](https://ucp.dev)
+"""
+
+tags_metadata = [
+    {"name": "profile", "description": "UCP Discovery and Well-Known information."},
+    {"name": "identity", "description": "OAuth 2.0 flow for account linking between AI agent and user."},
+    {"name": "checkout", "description": "State-machine based checkout sessions."},
+    {"name": "order", "description": "Post-purchase status and tracking."},
+]
+
+app = FastAPI(
+    title="UCP Merchant Sample API",
+    description=description,
+    version="1.0.0",
+    openapi_tags=tags_metadata,
+    contact={
+        "name": "UCP Developer Support",
+        "url": "https://github.com/arjunagi-a-rehman/ucp-merchant",
+    },
+)
 
 @app.get("/", response_class=HTMLResponse)
 def read_root():
