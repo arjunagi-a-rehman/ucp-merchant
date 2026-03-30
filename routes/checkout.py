@@ -10,13 +10,22 @@ router = APIRouter(
 )
 
 @router.post("", response_model=CheckoutSessionResponse, summary="Create Checkout Session")
-def create_session(req: CheckoutSessionRequest):
+def create_session(req: CheckoutSessionRequest, user_id: str = Depends(get_current_user)):
     """
     Starts a new UCP checkout process.
     Initial state: **incomplete**.
     Returns a unique session ID to track the transaction.
     """
-    return service.create_session(req)
+    return service.create_session(req, user_id=user_id)
+
+@router.get("/{session_id}", response_model=CheckoutSessionResponse, summary="Get Checkout Session")
+def get_session(session_id: str):
+    """Retrieve the current state of a checkout session."""
+    try:
+        return service.get_session(session_id)
+    except ValueError as e:
+        status_code = 404 if "not found" in str(e) else 400
+        raise HTTPException(status_code=status_code, detail=str(e))
 
 @router.post("/{session_id}/update", response_model=CheckoutSessionResponse, summary="Update Checkout Session")
 def update_session(session_id: str, update: CheckoutSessionUpdate):
@@ -33,7 +42,7 @@ def update_session(session_id: str, update: CheckoutSessionUpdate):
 @router.post("/{session_id}/complete", response_model=CheckoutSessionResponse, summary="Finalize Checkout")
 def complete_session(session_id: str):
     """
-    Finalizes the purchase. 
+    Finalizes the purchase.
     State transitions to **complete**.
     This triggers the actual order creation in the merchant's backend.
     """

@@ -1,52 +1,89 @@
-import uuid
+import httpx
 from models.checkout import CheckoutSessionResponse, CheckoutSessionRequest, CheckoutSessionUpdate
+from config import STOREFRONT_URL
+
+
+def _map_response(data: dict) -> CheckoutSessionResponse:
+    """Map storefront camelCase response to UCP snake_case model."""
+    # Storefront uses lineItems, UCP uses line_items
+    line_items = data.get("line_items") or data.get("lineItems") or []
+
+    # Map buyer fields
+    buyer = data.get("buyer")
+    if buyer and isinstance(buyer, dict):
+        addr = buyer.get("shipping_address") or buyer.get("shippingAddress")
+        if addr:
+            buyer = {
+                "email": buyer.get("email", ""),
+                "shipping_address": {
+                    "street": addr.get("street", ""),
+                    "city": addr.get("city", ""),
+                    "state": addr.get("state", ""),
+                    "zip": addr.get("zip", ""),
+                },
+                "payment_method": buyer.get("payment_method") or buyer.get("paymentMethod", "razorpay"),
+            }
+
+    return CheckoutSessionResponse(
+        id=data.get("id", ""),
+        status=data.get("status", "incomplete"),
+        line_items=line_items,
+        buyer=buyer,
+        order_id=data.get("orderId") or data.get("order_id"),
+    )
+
 
 class CheckoutService:
     def __init__(self):
-        self.sessions = {}
-        
-    def create_session(self, req: CheckoutSessionRequest) -> CheckoutSessionResponse:
-        session_id = str(uuid.uuid4())
-        session = CheckoutSessionResponse(
-            id=session_id,
-            status="incomplete",
-            line_items=req.line_items,
-            buyer=req.buyer
-        )
-        self.sessions[session_id] = session
-        return session
-        
+        self.base_url = f"{STOREFRONT_URL}/api/checkout/sessions"
+
+    def get_session(self, session_id: str) -> CheckoutSessionResponse:
+        with httpx.Client(timeout=30) as client:
+            resp = client.get(f"{self.base_url}/{session_id}")
+            if resp.status_code == 404:
+                raise ValueError("Session not found")
+            resp.raise_for_status()
+            return _map_response(resp.json())
+
+    def create_session(self, req: CheckoutSessionRequest, user_id: str = "") -> CheckoutSessionResponse:
+        with httpx.Client(timeout=30) as client:
+            resp = client.post(self.base_url, json={
+                "line_items": [item.model_dump() for item in req.line_items],
+                "user_id": user_id,
+            })
+            resp.raise_for_status()
+            return _map_response(resp.json())
+
     def update_session(self, session_id: str, update: CheckoutSessionUpdate) -> CheckoutSessionResponse:
-        if session_id not in self.sessions:
-            raise ValueError("Session not found")
-        session = self.sessions[session_id]
-        if update.buyer:
-            session.buyer = update.buyer
-        
-        # If sufficient info exists, move to ready_for_complete
-        if session.buyer and session.buyer.shipping_address and session.buyer.payment_method:
-            session.status = "ready_for_complete"
-            
-        self.sessions[session_id] = session
-        return session
-        
+        with httpx.Client(timeout=30) as client:
+            # Send in both formats so storefront can handle either
+            buyer = update.buyer.model_dump()
+            # Also send camelCase version for storefront compatibility
+            buyer_payload = {
+                "email": buyer["email"],
+                "shippingAddress": buyer["shipping_address"],
+                "paymentMethod": buyer["payment_method"],
+            }
+            resp = client.post(
+                f"{self.base_url}/{session_id}/update",
+                json={"buyer": buyer_payload},
+            )
+            if resp.status_code == 404:
+                raise ValueError("Session not found")
+            if resp.status_code == 400:
+                raise ValueError(resp.json().get("error", "Bad request"))
+            resp.raise_for_status()
+            return _map_response(resp.json())
+
     def complete_session(self, session_id: str) -> CheckoutSessionResponse:
-        if session_id not in self.sessions:
-            raise ValueError("Session not found")
-        session = self.sessions[session_id]
-        if session.status != "ready_for_complete":
-            raise ValueError("Session is not ready for completion")
-        session.status = "complete"
-        self.sessions[session_id] = session
-        
-        # When checkout completes, generate the corresponding Order
-        from services.order import order_service
-        order_id = f"ORD-{session_id[:8]}"
-        order_service.create_order(
-            order_id=order_id,
-            line_items=session.line_items,
-            buyer=session.buyer
-        )
-        return session
+        with httpx.Client(timeout=30) as client:
+            resp = client.post(f"{self.base_url}/{session_id}/complete")
+            if resp.status_code == 404:
+                raise ValueError("Session not found")
+            if resp.status_code == 400:
+                raise ValueError(resp.json().get("error", "Bad request"))
+            resp.raise_for_status()
+            return _map_response(resp.json())
+
 
 service = CheckoutService()

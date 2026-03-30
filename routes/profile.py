@@ -1,6 +1,7 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from pydantic import BaseModel
 from typing import List
+from config import STOREFRONT_URL, UCP_API_BASE
 
 class UCPProfile(BaseModel):
     version: str
@@ -13,24 +14,26 @@ router = APIRouter(tags=["profile"])
 def get_ucp_profile():
     """
     Entry point for the Universal Commerce Protocol.
-    AI agents query this URL to discover which commerce capabilities (checkout, orders, identity) 
+    AI agents query this URL to discover which commerce capabilities (checkout, orders, identity)
     this merchant supports and where their secure configuration is located.
     """
     return {
         "version": "1.0",
-        "name": "Sample UCP Merchant",
+        "name": "UCP Demo Store",
         "capabilities": [
-            "checkout", 
+            "checkout",
             "order",
+            "products",
             "dev.ucp.common.identity_linking"
         ]
     }
 
 @router.get("/.well-known/oauth-authorization-server")
-def get_oauth_config():
-    from .oauth_config import config
+def get_oauth_config(request: Request):
+    # Use the request's base URL so it works in any deployment
+    base = str(request.base_url).rstrip("/")
     return {
-        "issuer": "http://127.0.0.1:8000",
-        "authorization_endpoint": "http://127.0.0.1:8000/oauth/authorize",
-        "token_endpoint": "http://127.0.0.1:8000/oauth/token"
+        "issuer": base,
+        "authorization_endpoint": f"{base}/oauth/authorize",
+        "token_endpoint": f"{base}/oauth/token"
     }

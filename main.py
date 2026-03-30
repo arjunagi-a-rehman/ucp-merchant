@@ -1,6 +1,7 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
-from routes import profile, checkout, order, identity
+from routes import profile, checkout, order, identity, products
 
 description = """
 ### Universal Commerce Protocol (UCP) Sample Merchant API
@@ -59,10 +60,19 @@ def read_root():
     </html>
     """
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.include_router(profile.router)
 app.include_router(checkout.router)
 app.include_router(order.router)
 app.include_router(identity.router)
+app.include_router(products.router)
 
 if __name__ == "__main__":
     import uvicorn

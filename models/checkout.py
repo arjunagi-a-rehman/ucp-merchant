@@ -5,16 +5,18 @@ class LineItem(BaseModel):
     id: str = Field(..., description="Unique ID for the item (SKU or product ID).")
     name: str = Field(..., description="Human-readable name of the item.")
     quantity: int = Field(..., description="Number of items being purchased.")
-    price: float = Field(..., description="Unit price of the item.")
+    price: float = Field(..., description="Unit price of the item in INR.")
 
 class BuyerAddress(BaseModel):
+    street: Optional[str] = Field(None, description="Street address.")
     city: str = Field(..., description="City of the shipping address.")
-    state: str = Field(..., description="State or province code (e.g., NY).")
+    state: str = Field(..., description="State or province code (e.g., KA).")
+    zip: Optional[str] = Field(None, description="Postal/ZIP code.")
 
 class BuyerInfo(BaseModel):
     email: str = Field(..., description="Email address of the buyer for receipt delivery.")
     shipping_address: BuyerAddress = Field(..., description="Standard UCP shipping address object.")
-    payment_method: str = Field(..., description="Payment method handle or token provided by the agent.")
+    payment_method: str = Field("razorpay", description="Payment method. Use 'razorpay' for this merchant.")
 
 class CheckoutSessionRequest(BaseModel):
     line_items: List[LineItem] = Field(..., description="List of items as defined by the merchant catalog.")
@@ -27,3 +29,4 @@ class CheckoutSessionResponse(BaseModel):
     status: str = Field(..., description="Current UCP checkout state (incomplete, ready_for_complete, complete).")
     line_items: List[LineItem] = Field(..., description="Current list of items in the cart.")
     buyer: Optional[BuyerInfo] = Field(None, description="Buyer information if it has been provided.")
+    order_id: Optional[str] = Field(None, description="Created order ID (only present after completion).")
