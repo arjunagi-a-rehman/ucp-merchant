@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
-from routes import profile, checkout, order, identity, products
+from routes import profile, checkout, order, identity, products, agent_callback
 
 description = """
 ### Universal Commerce Protocol (UCP) Sample Merchant API
@@ -73,6 +73,7 @@ app.include_router(checkout.router)
 app.include_router(order.router)
 app.include_router(identity.router)
 app.include_router(products.router)
+app.include_router(agent_callback.router)
 
 if __name__ == "__main__":
     import uvicorn
