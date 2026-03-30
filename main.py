@@ -4,24 +4,35 @@ from fastapi.responses import HTMLResponse
 from routes import profile, checkout, order, identity, products, agent_callback
 
 description = """
-### Universal Commerce Protocol (UCP) Sample Merchant API
+### Universal Commerce Protocol (UCP) Merchant API
 
-This reference implementation demonstrates a UCP-compliant API for enabling **Agentic Commerce**. 
-AI agents (like Gemini, Alexa, or Siri) can use these endpoints to perform secure, transaction-based actions on behalf of users.
+A self-describing API for **Agentic Commerce**. AI agents discover capabilities, link user identity, and transact — all from a single discovery URL.
 
-**Key Capabilities:**
-*   🚀 **Checkout**: Stateful transaction flow for AI agents.
-*   📦 **Orders**: Standardized order status and tracking.
-*   🔐 **Identity**: OAuth 2.0 based identity linking for agent authorization.
+**Start here:** `GET /.well-known/ucp` — returns all capabilities, flows, endpoints, and schemas.
 
-[Learn more about UCP](https://ucp.dev)
+**Key principles:**
+- **Self-describing**: Every response includes `next_actions` telling the agent exactly what to do next
+- **Actionable errors**: Error responses include the specific action and endpoint to fix the issue
+- **Machine-readable flows**: The discovery endpoint defines complete purchase and auth flows with field mappings
+- **Standard OAuth 2.0**: Identity linking via agent polling pattern (no browser automation needed)
+
+**Typical agent flow:**
+1. `GET /.well-known/ucp` — discover everything
+2. Identity linking (OAuth + polling) — get a Bearer token
+3. `GET /products` — browse catalog
+4. `POST /checkout/sessions` — start checkout (response tells agent what's next)
+5. `POST /checkout/sessions/{id}/update` — add buyer info (response tells agent what's next)
+6. `POST /checkout/sessions/{id}/complete` — place order
+7. `GET /orders/{id}` — track order
 """
 
 tags_metadata = [
-    {"name": "profile", "description": "UCP Discovery and Well-Known information."},
-    {"name": "identity", "description": "OAuth 2.0 flow for account linking between AI agent and user."},
-    {"name": "checkout", "description": "State-machine based checkout sessions."},
-    {"name": "order", "description": "Post-purchase status and tracking."},
+    {"name": "profile", "description": "UCP Discovery — the only URL an agent needs. Returns all capabilities, flows, endpoints, and schemas."},
+    {"name": "identity", "description": "OAuth 2.0 identity linking with agent polling pattern. No browser automation required."},
+    {"name": "checkout", "description": "State-machine checkout. Every response includes next_actions with the exact endpoint and fields needed."},
+    {"name": "order", "description": "Order tracking with status-aware next_actions."},
+    {"name": "products", "description": "Product catalog. Each product includes next_actions showing how to add it to a checkout."},
+    {"name": "agent", "description": "Agent OAuth callback and session polling for seamless identity linking."},
 ]
 
 app = FastAPI(
